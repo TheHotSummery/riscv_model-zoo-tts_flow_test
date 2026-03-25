@@ -5,6 +5,9 @@
 #
 # GitHub PAT 等由 riscv-action-runner 侧配置，不在本文件内填写。
 
+# 依赖由 Runner 镜像/板卡环境预先装好，此处只做检测。
+
+
 steps:
   - name: 检查环境
     run: |
@@ -13,15 +16,15 @@ steps:
       git log --oneline -3
       uname -a
 
-  - name: 安装依赖
-    run: |
-      set -e
-      sudo apt-get update -q
-      sudo apt-get install -y \
-        build-essential cmake ninja-build pkg-config \
-        libsndfile1-dev libfftw3-dev espeak-ng \
-        libcurl4-openssl-dev libespeak-ng-dev
-      # onnxruntime 已在板子通过 apt 安装；若未装则后续配置会失败
+      echo "--- 工具链 ---"
+      command -v cmake && cmake --version | head -1
+      command -v ninja && ninja --version
+      command -v c++ && c++ --version | head -1
+      echo "--- ONNX（本仓库配置需要）---"
+      test -f /usr/include/onnxruntime_cxx_api.h && echo "onnxruntime 头文件: ok" || { echo "缺少 onnxruntime 头文件"; exit 1; }
+      test -f /usr/lib/libonnxruntime.so && echo "libonnxruntime.so: ok" || { echo "缺少 libonnxruntime.so"; exit 1; }
+      test -f /usr/lib/libspacemit_ep.so && echo "libspacemit_ep.so: ok" || { echo "缺少 libspacemit_ep.so"; exit 1; }
+
 
   - name: 清理上次产物
     run: |
@@ -31,15 +34,10 @@ steps:
   - name: 配置（CMake）
     run: |
       set -e
-      # 板子 apt 安装的 ONNX Runtime（含 libspacemit_ep.so）
-      if [ -f /usr/lib/libonnxruntime.so ]; then
-        cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
-          -DONNXRUNTIME_INCLUDE_DIR=/usr/include \
-          -DONNXRUNTIME_LIB="/usr/lib/libonnxruntime.so;/usr/lib/libspacemit_ep.so"
-      else
-        echo "未找到 /usr/lib/libonnxruntime.so，请先: sudo apt install onnxruntime"
-        exit 1
-      fi
+
+      cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
+        -DONNXRUNTIME_INCLUDE_DIR=/usr/include \
+        -DONNXRUNTIME_LIB="/usr/lib/libonnxruntime.so;/usr/lib/libspacemit_ep.so"
 
   - name: 编译
     run: |
