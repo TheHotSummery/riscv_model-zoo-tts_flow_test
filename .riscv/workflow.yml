@@ -4,7 +4,9 @@
 # Runner 在仓库根目录执行 steps；任一步失败即整次失败。
 #
 # GitHub PAT 等由 riscv-action-runner 侧配置，不在本文件内填写。
+
 # 依赖由 Runner 镜像/板卡环境预先装好，此处只做检测。
+
 
 steps:
   - name: 检查环境
@@ -13,6 +15,7 @@ steps:
       echo "工作区：$PWD"
       git log --oneline -3
       uname -a
+
       echo "--- 工具链 ---"
       command -v cmake && cmake --version | head -1
       command -v ninja && ninja --version
@@ -22,6 +25,7 @@ steps:
       test -f /usr/lib/libonnxruntime.so && echo "libonnxruntime.so: ok" || { echo "缺少 libonnxruntime.so"; exit 1; }
       test -f /usr/lib/libspacemit_ep.so && echo "libspacemit_ep.so: ok" || { echo "缺少 libspacemit_ep.so"; exit 1; }
 
+
   - name: 清理上次产物
     run: |
       set -e
@@ -30,6 +34,7 @@ steps:
   - name: 配置（CMake）
     run: |
       set -e
+
       cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
         -DONNXRUNTIME_INCLUDE_DIR=/usr/include \
         -DONNXRUNTIME_LIB="/usr/lib/libonnxruntime.so;/usr/lib/libspacemit_ep.so"
