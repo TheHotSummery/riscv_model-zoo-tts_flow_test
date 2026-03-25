@@ -1,0 +1,52 @@
+# .riscv/workflow.yml — RISC-V CI 工作流（riscv-action-runner 自定义 YAML）
+#
+# 勿放入 .github/workflows/，否则 GitHub Actions 会尝试解析并报错。
+# Runner 在仓库根目录执行 steps；任一步失败即整次失败。
+#
+# GitHub PAT 等由 riscv-action-runner 侧配置，不在本文件内填写。
+
+steps:
+  - name: 检查环境
+    run: |
+      set -e
+      echo "工作区：$PWD"
+      git log --oneline -3
+      uname -a
+
+  - name: 安装依赖
+    run: |
+      set -e
+      sudo apt-get update -q
+      sudo apt-get install -y \
+        build-essential cmake ninja-build pkg-config \
+        libsndfile1-dev libfftw3-dev espeak-ng \
+        libcurl4-openssl-dev libespeak-ng-dev
+      # onnxruntime 已在板子通过 apt 安装；若未装则后续配置会失败
+
+  - name: 清理上次产物
+    run: |
+      set -e
+      rm -rf build/
+
+  - name: 配置（CMake）
+    run: |
+      set -e
+      # 板子 apt 安装的 ONNX Runtime（含 libspacemit_ep.so）
+      if [ -f /usr/lib/libonnxruntime.so ]; then
+        cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          -DONNXRUNTIME_INCLUDE_DIR=/usr/include \
+          -DONNXRUNTIME_LIB="/usr/lib/libonnxruntime.so;/usr/lib/libspacemit_ep.so"
+      else
+        echo "未找到 /usr/lib/libonnxruntime.so，请先: sudo apt install onnxruntime"
+        exit 1
+      fi
+
+  - name: 编译
+    run: |
+      set -e
+      ninja -C build -j"$(nproc)"
+
+  - name: 运行示例（自检）
+    run: |
+      set -e
+      ./build/bin/tts_file_demo --help
