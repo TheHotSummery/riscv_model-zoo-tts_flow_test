@@ -1,0 +1,17 @@
+steps:
+  - name: configure
+    run: |
+      set -e
+      rm -rf build
+      if [ -f /usr/lib/libonnxruntime.so ]; then
+        cmake -B build -S . \
+          -DONNXRUNTIME_INCLUDE_DIR=/usr/include \
+          -DONNXRUNTIME_LIB="/usr/lib/libonnxruntime.so;/usr/lib/libspacemit_ep.so"
+      else
+        cmake -B build -S .
+      fi
+
+  - name: build
+    run: |
+      set -e
+      cmake --build build -j"$(nproc)"

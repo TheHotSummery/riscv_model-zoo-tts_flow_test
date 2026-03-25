@@ -177,9 +177,10 @@ if(NOT FFTW3_FOUND AND NOT FFTW3F_FOUND)
 endif()
 
 # libcurl (for model download)
+# 使用 PUBLIC：静态库 libtts.a 内调用 curl，链接可执行文件/共享模块时必须带上 libcurl，PRIVATE 不会传递依赖。
 find_package(CURL QUIET)
 if(CURL_FOUND)
-    target_link_libraries(tts PRIVATE CURL::libcurl)
+    target_link_libraries(tts PUBLIC CURL::libcurl)
 endif()
 
 # =============================================================================
